@@ -1,133 +1,84 @@
-# Medical Content Scraper & Trust Scoring System
+# 🏥 Task 2: Medical Content Scraper & Trust Scoring System
 
-## Project Structure
+This sub-project represents a modularized and improved version of the medical content scraping pipeline. It features a decoupled architecture for better scalability, maintenance, and advanced scoring logic.
 
-```
-project/
-├── main.py                    ← Entry point, run this
+## 🏗 Modular Architecture
+
+The project is split into four logical layers to ensure clean separation of concerns:
+
+- **`scraper/`**: Specialized modules for fetching raw data.
+- **`scoring/`**: Core logic for evaluating content trustworthiness.
+- **`utils/`**: Shared services for semantic tagging and content chunking.
+- **`main.py`**: Orchestration layer that builds the final records.
+
+```text
+task2/
+├── main.py                    ← Pipeline Orchestrator
 ├── scraper/
-│   ├── blog_scraper.py        ← Scrapes blog posts
-│   ├── youtube_scraper.py     ← Scrapes YouTube videos + transcripts
-│   └── pubmed_scraper.py      ← Scrapes PubMed articles
+│   ├── blog_scraper.py        ← Generic/Specialized Blog Logic
+│   ├── youtube_scraper.py     ← YouTube Metadata & Transcripts
+│   └── pubmed_scraper.py      ← PubMed (NCBI) Article Extraction
 ├── scoring/
-│   └── trust_score.py         ← Trust scoring algorithm (0.0 – 1.0)
+│   └── trust_score.py         ← Weighted Scoring & Abuse Penalties
 ├── utils/
-│   ├── tagging.py             ← Auto topic tag generation
-│   └── chunking.py            ← Content chunking logic
-└── output/
-    ├── blogs.json
-    ├── youtube.json
-    ├── pubmed.json
-    └── scraped_data.json      ← All 6 sources combined
+│   ├── tagging.py             ← KeyBERT Semantic Tagging
+│   └── chunking.py            ← Paragraph-to-Chunk Logic
+└── output/                    ← Final JSON Records
 ```
 
----
+> [!TIP]
+> For a detailed explanation of this architecture and component interactions, see [System Architecture](../documentation/architecture.md) and [API Reference](../documentation/api_reference.md).
 
-## Tools & Libraries
+## 🛠 Advanced Trust Scoring
 
-| Library | Version | Purpose |
-|---|---|---|
-| `requests` | latest | HTTP requests to fetch web pages |
-| `beautifulsoup4` | latest | HTML parsing and content extraction |
-| `youtube-transcript-api` | latest | Fetch YouTube video transcripts |
-| `langdetect` | latest | Automatic language detection |
-| `keybert` | latest | Semantic topic tag generation |
+The Trust Score (0.0 – 1.0) is a weighted sum of five key factors, adjusted by automated abuse penalties.
 
----
+### 1. Weighted Factors (Sum = 1.0)
+| Factor | Weight | Scoring Logic |
+| :--- | :--- | :--- |
+| **Domain Authority** | 30% | Curated lookup (e.g., PubMed=1.0, WHO=0.97). |
+| **Author Credibility**| 25% | Recognized organizations (0.95), Full Name (0.70). |
+| **Recency** | 20% | ≤1yr (1.0), ≤2yrs (0.8), ≤5yrs (0.6), >10yrs (0.2). |
+| **Medical Disclaimer**| 15% | Present (1.0), Absent (0.0). PubMed always 1.0. |
+| **Content Richness** | 10% | Word count thresholds (>1000 words = 1.0). |
 
-## Installation
+### 2. Domain Authority (Partial List)
+| Domain | Score | Domain | Score |
+| :--- | :--- | :--- | :--- |
+| pubmed.ncbi.nlm.nih.gov | 1.00 | who.int | 0.97 |
+| cdc.gov | 0.96 | nih.gov | 0.95 |
+| healthline.com | 0.80 | youtube.com | 0.65 |
+| medium.com | 0.50 | unknown.com | 0.30 |
 
+### 3. Abuse Prevention Penalties
+| Scenario | Penalty | Reason |
+| :--- | :--- | :--- |
+| **Suspicious Author** | -0.10 | Use of "admin", "staff", "webmaster". |
+| **Low Authority** | -0.10 | Domain score ≤ 0.30 (Potential SEO spam). |
+| **Missing Disclaimer**| -0.08 | Required for medical content on Blogs/YouTube. |
+| **Outdated Content** | -0.15 | Content older than 10 years. |
+
+## 🚀 Getting Started
+
+### Installation
 ```bash
 pip install requests beautifulsoup4 youtube-transcript-api langdetect keybert
 ```
 
----
-
-## How to Run
-
+### Execution
 ```bash
-cd project
 python main.py
 ```
 
-Output files will appear in the `output/` folder.
+## 📊 Technical Features
 
----
+- **Semantic Chunking**: Content is split into chunks of ~150 words using `utils/chunking.py`, preserving paragraph integrity where possible.
+- **Dynamic Tagging**: Uses `KeyBERT` in `utils/tagging.py` to extract topics without a fixed taxonomy.
+- **Error Resilience**: Failed scrapes return a partial record with "Unknown" values rather than crashing the pipeline.
+- **Language Detection**: Automatically skips tagging for extremely short or non-detectable content.
 
-## Scraping Approach
+## ⚠️ Limitations & Edge Cases
+- **JavaScript Rendering**: Currently relies on `requests`. Sites using heavy client-side rendering (React/Next.js) may return partial content.
+- **YouTube Metadata**: Publish dates are extracted from Open Graph tags, which may be less reliable than the official Data API.
+- **Geographic Data**: The `region` field is currently "Unknown" and requires integration with a GeoIP service.
 
-### Blogs
-- Uses `requests` to fetch HTML and `BeautifulSoup` to parse it
-- Tries multiple CSS class patterns for author and date extraction
-- Filters `<p>` tags longer than 60 characters to remove nav/footer noise
-- Detects medical disclaimers by scanning for keywords
-
-### YouTube
-- Fetches Open Graph metadata for title, channel, description
-- Uses `youtube-transcript-api` to get full auto-generated or human transcript
-- Falls back to video description if transcript is unavailable
-- Groups transcript lines into 8-line chunks
-
-### PubMed
-- Targets PubMed's consistent HTML structure
-- Extracts title, all authors (as a list), journal, year, and abstract paragraphs
-- Always marks `has_medical_disclaimer = True` since it is peer-reviewed
-
----
-
-## Trust Score Algorithm
-
-### Formula
-```
-Trust Score = weighted_sum(
-    domain_authority    × 0.30,
-    author_credibility  × 0.25,
-    recency             × 0.20,
-    medical_disclaimer  × 0.15,
-    content_richness    × 0.10
-) − abuse_penalties
-```
-
-### Factor Details
-
-| Factor | How It Is Scored |
-|---|---|
-| Domain Authority | Curated lookup table (WHO=0.97, PubMed=1.0, unknown=0.30) |
-| Author Credibility | Known org → 0.95, Full name → 0.70, Unknown → 0.10 |
-| Recency | ≤1 year → 1.0, ≤2 years → 0.8, ≤5 years → 0.6, older → lower |
-| Medical Disclaimer | Present → 1.0, Absent → 0.0 (PubMed always 1.0) |
-| Content Richness | Based on word count and transcript availability |
-
-### Abuse Prevention
-
-| Threat | Penalty |
-|---|---|
-| Suspicious author name (admin, editor, staff) | −0.10 |
-| Low domain authority (≤0.30) | −0.10 |
-| No medical disclaimer on medical content | −0.08 |
-| Content older than 10 years | −0.15 |
-| Content older than 5 years | −0.07 |
-
----
-
-## Edge Case Handling
-
-| Edge Case | Handling |
-|---|---|
-| Missing author | Score = 0.1, flagged in breakdown |
-| Missing date | Recency score = 0.2 |
-| No transcript (YouTube) | Fallback to description, content score = 0.3 |
-| Multiple authors (PubMed) | Average of individual credibility scores |
-| Non-English content | Detected via `langdetect`, stored in `language` field |
-| Very long articles | Re-chunked to max 150 words per chunk |
-| Failed HTTP request | Returns empty record with all fields set to "Unknown" |
-
----
-
-## Limitations
-
-1. YouTube publish date requires the YouTube Data API v3 for reliable extraction (basic scraping may return "Unknown")
-2. `region` field is always "Unknown" — real region detection needs an IP geolocation API
-3. Some blog sites use JavaScript rendering (React/Next.js) — `requests` cannot scrape them; Selenium would be needed
-4. Domain authority table is manually curated and may need updates
-5. KeyBERT model download (~500MB) is required on first run

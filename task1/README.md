@@ -1,60 +1,63 @@
-# Multi-Source Web Scraper & Trust Scorer
+# 🎯 Task 1: Multi-Source Web Scraper & Trust Scorer
 
-This project is a flexible web scraping and content analysis system designed to extract structured data from diverse sources including medical journals (PubMed), video platforms (YouTube), and general blog posts. It automatically detects language, generates AI-powered topic tags, and calculates a content "Trust Score."
+This sub-project implements a flexible web scraping and content analysis system designed to extract structured data from diverse sources including medical journals (PubMed), video platforms (YouTube), and general blog posts.
 
-## Features
+## ✨ Features
 
-- **Multi-Source Scraping**: Specialized modules for Blogs (recursive fallback), YouTube (transcripts + metadata), and PubMed (specialized headers).
-- **AI-Powered Tagging**: Uses `KeyBERT` to automatically extract the most relevant keywords from the content.
-- **Trust Scoring Algorithm**: A weighted scoring system (0-100) based on source credibility, authorship, recency, and content richness.
-- **Robustness**: 
-    - Automatic User-Agent rotation using `fake-useragent`.
-    - Handles anti-bot protections using `httpx`.
-    - Prioritizes Open Graph and Metadata tags for high-accuracy extraction.
-- **Structured Storage**: Outputs data in clean, ready-to-use JSON format.
+- **Multi-Source Scraping**: Specialized modules for Blogs (recursive fallback), YouTube (transcripts + metadata), and PubMed.
+- **AI-Powered Tagging**: Uses `KeyBERT` to automatically extract the most relevant keywords.
+- **Trust Scoring Algorithm**: A weighted scoring system (0-100) based on source credibility, authorship, and recency.
+- **Robustness**: Header rotation and anti-bot protection using `httpx` and `fake-useragent`.
+- **Automated Language Detection**: Uses `langdetect` to identify the content's primary language.
 
-## 🛠️ Project Structure
+## 🏗 Project Structure
 
 ```text
 task1/
 ├── main.py               # Main entry point (orchestrator)
 ├── scrappers/            # Scraper package
-│   ├── __init__.py
-│   ├── blog_scraper.py   # Generic & specialized blog scraping logic
-│   ├── youtube_scraper.py# YouTube transcript & info extraction
+│   ├── blog_scraper.py   # Generic & specialized blog logic
+│   ├── youtube_scraper.py# YouTube transcript extraction
 │   └── pubmed_scrapper.py# PubMed specific journal scraping
 ├── topic_tagger.py       # AI Topic generation using KeyBERT
-├── trust_score.py        # Logic for calculating the Trust Score
+├── trust_score.py        # Logic for Trust Score calculation
 └── scraped_data/         # Output directory for JSON results
 ```
 
-## Prerequisites
+## 🛠 Technical Details
 
-- **Python 3.12+** (Tested on 3.14)
+### 1. Scraper Implementations
+- **Blog Scraper**: Uses `requests` and `BeautifulSoup4`. Implements fallback logic to extract content even when standard tags are missing.
+- **YouTube Scraper**: Utilizes `youtube-transcript-api` for full transcripts and `requests` for metadata (Title, Author, Date).
+- **PubMed Scrapper**: Optimized for the NCBI structure, extracting authors, journal info, and abstracts.
+
+### 2. Trust Scoring Rules (0 - 100)
+The trust score is calculated based on the following additive rules:
+- **Source Type**: PubMed (+40), YouTube (+20), Blog (+15).
+- **Author Identity**: Known author present (+15).
+- **Recency**: Date present (+10), published in 2022 or later (+10 bonus).
+- **Content Richness**: >500 words (+15), >200 words (+8).
+- **YouTube Quality**: Transcript available (+10).
+- **Advanced Logic**: For a deep dive into the evolution of this algorithm, see the [Trust Scoring Algorithm](../documentation/trust_scoring.md).
+
+## 🚀 Installation & Usage
+
+### Prerequisites
+- Python 3.12+
 - Pip
 
-##  Installation
-
-1. Clone the repository and navigate to the project folder.
-2. Install the required dependencies:
-
+### Setup
 ```bash
 pip install youtube-transcript-api requests beautifulsoup4 langdetect keybert httpx fake-useragent
 ```
 
-## Usage
-
-Run the main script to start the scraping process:
-
+### Execution
 ```bash
 python main.py
 ```
+The results will be saved as JSON files in the `scraped_data/` directory.
 
-The script will process the URLs defined in `main.py` and save the results to the `scraped_data/` folder.
-
-## Output Schema
-
-Each entry in the output JSON files follows this schema:
+## 📊 Output Schema
 
 ```json
 {
@@ -69,8 +72,9 @@ Each entry in the output JSON files follows this schema:
 }
 ```
 
-##  Important Notes
+## ⚠️ Important Notes
 
-- **PubMed & Healthline**: These sites have aggressive anti-bot protections. If you encounter `403 Forbidden` errors, consider using a residential proxy or a headless browser solution like Playwright.
-- **YouTube Transcripts**: Transcripts must be enabled by the uploader to be extracted. If disabled, the scraper falls back to the video description.
-- **HF HUB Warning**: When running for the first time, `KeyBERT` will download its transformer models. You may see a warning about `HF_TOKEN`; this can be ignored unless you require higher rate limits.
+- **Anti-Bot Protection**: Sites like Healthline and PubMed have aggressive protections. This scraper uses `fake-useragent` but may still require proxies for high-volume scraping.
+- **YouTube Transcripts**: If transcripts are disabled by the creator, the scraper will fall back to the video description.
+- **KeyBERT Models**: On first run, ~500MB of transformer models will be downloaded.
+
