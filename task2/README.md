@@ -2,6 +2,9 @@
 
 This sub-project represents a modularized and improved version of the medical content scraping pipeline. It features a decoupled architecture for better scalability, maintenance, and advanced scoring logic.
 
+> [!IMPORTANT]
+> **[📖 User Guide](./USER_GUIDE.md)** | **[🛠 Technical Guide](./TECHNICAL_GUIDE.md)**
+
 ## 🏗 Modular Architecture
 
 The project is split into four logical layers to ensure clean separation of concerns:

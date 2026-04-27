@@ -2,6 +2,9 @@
 
 This sub-project implements a flexible web scraping and content analysis system designed to extract structured data from diverse sources including medical journals (PubMed), video platforms (YouTube), and general blog posts.
 
+> [!IMPORTANT]
+> **[📖 User Guide](./USER_GUIDE.md)** | **[🛠 Technical Guide](./TECHNICAL_GUIDE.md)**
+
 ## ✨ Features
 
 - **Multi-Source Scraping**: Specialized modules for Blogs (recursive fallback), YouTube (transcripts + metadata), and PubMed.
